@@ -1,0 +1,10 @@
+[package]
+name = "snapshot-testing"
+version = "0.1.0"
+authors = ["Emily Crandall Fleischman <emilycf@mit.edu>"]
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+difference = "2.0.0"
+thiserror = "1.0.24"
