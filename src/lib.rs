@@ -63,7 +63,7 @@ fn check_and_update(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Erro
 }
 
 fn compare(actual: &str, expected: &str) -> Result<(), Error> {
-    let diff = Changeset::new(actual, expected, "");
+    let diff = Changeset::new(expected, actual, "");
     if diff.distance == 0 {
         Ok(())
     } else {
