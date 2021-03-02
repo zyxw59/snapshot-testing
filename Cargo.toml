@@ -1,6 +1,6 @@
 [package]
 name = "snapshot-testing"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Emily Crandall Fleischman <emilycf@mit.edu>"]
 edition = "2018"
 license = "MIT"

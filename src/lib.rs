@@ -24,32 +24,40 @@ pub enum Error {
 }
 
 pub fn check_snapshot(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Error> {
+    check_snapshot_diff_flag(actual, snapshot, true)
+}
+
+pub fn check_snapshot_no_diff(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Error> {
+    check_snapshot_diff_flag(actual, snapshot, false)
+}
+
+fn check_snapshot_diff_flag(actual: &str, snapshot: impl AsRef<Path>, show_diff: bool) -> Result<(), Error> {
     if !snapshot.as_ref().exists() {
-        create(actual, snapshot)
+        create(actual, snapshot, show_diff)
     } else if std::env::var(UPDATE_SNAPSHOTS_VAR).is_ok() {
-        check_and_update(actual, snapshot)
+        check_and_update(actual, snapshot, show_diff)
     } else {
-        check(actual, snapshot)
+        check(actual, snapshot, show_diff)
     }
 }
 
-fn check(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Error> {
+fn check(actual: &str, snapshot: impl AsRef<Path>, show_diff: bool) -> Result<(), Error> {
     let mut file = File::open(snapshot).map_err(Error::File)?;
     let expected = read_to_string(&mut file)?;
 
-    compare(actual, &expected)
+    compare(actual, &expected, show_diff)
 }
 
-fn create(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Error> {
+fn create(actual: &str, snapshot: impl AsRef<Path>, show_diff: bool) -> Result<(), Error> {
     let mut file = File::create(snapshot).map_err(Error::File)?;
     file.write(actual.as_bytes()).map_err(Error::Write)?;
 
-    let _ = compare(actual, "");
+    let _ = compare(actual, "", show_diff);
     Err(Error::Created)
 }
 
-fn check_and_update(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Error> {
-    if check(actual, &snapshot).is_err() {
+fn check_and_update(actual: &str, snapshot: impl AsRef<Path>, show_diff: bool) -> Result<(), Error> {
+    if check(actual, &snapshot, show_diff).is_err() {
         let mut file = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -62,12 +70,14 @@ fn check_and_update(actual: &str, snapshot: impl AsRef<Path>) -> Result<(), Erro
     }
 }
 
-fn compare(actual: &str, expected: &str) -> Result<(), Error> {
+fn compare(actual: &str, expected: &str, show_diff: bool) -> Result<(), Error> {
     let diff = Changeset::new(expected, actual, "");
     if diff.distance == 0 {
         Ok(())
     } else {
-        eprintln!("{}", diff);
+        if show_diff {
+            eprintln!("{}", diff);
+        }
         Err(Error::Difference)
     }
 }
@@ -83,11 +93,12 @@ fn read_to_string(file: &mut File) -> Result<String, Error> {
 mod tests {
     #[test]
     fn test_compare() {
-        super::compare("hello world", "hello, world!").unwrap_err();
-        super::compare("hello world", "hello world").unwrap();
+        super::compare("hello world", "hello, world!", false).unwrap_err();
+        super::compare("hello world", "hello world", false).unwrap();
         super::compare(
             "this string\nhas multiple\nline",
             "this string\nhas multiple\nlines",
+            false,
         )
         .unwrap_err();
     }
